@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>Document</title>
+	</head>
+	<style>
+		* {
+			box-sizing: border-box;
+
+		}
+
+		.wrapper {
+			max-width: 700px;
+			margin: auto;
+		}
+
+		.wrapper:first-child {
+			margin-bottom: 50px;
+		}
+
+		.how_much,
+		.convert,
+		.how_much_change,
+		.convert_into,
+		.convert_from {
+			height: 25px;
+			width: 180px;
+			padding-left: 10px;
+			border: 3px dashed grey;
+			border-radius: 10px;
+			font-weight: bold;
+			margin-bottom: 20px;
+		}
+
+		.how_much:focus {
+			background-color: lavender;
+		}
+
+		.convert:focus {
+			background-color: lavender;
+		}	
+
+
+		button {
+			border: 2px solid green;
+			border-radius: 10px;
+			font-size: 20px;
+			background-color: green;
+			color: #ccc;
+			margin-left: 20px;
+			font-weight: bold;
+		}
+
+		.show_result,
+		.show_into_result {
+			height: 25px;
+			width: 100%;
+			border: 3px solid orange;
+		}
+
+		.result {
+			margin-left: 20px;
+		}
+
+	</style>
+	<body>
+		<div class="wrapper">
+			<form class="from_grn">
+				<input class="how_much" type="text" placeholder="Сколько гривен?">
+				<select class="convert"></select>
+				<button class="btn_convert">Convert</button>
+				<div class="show_result"></div>
+			</form>
+		</div>
+
+		<div class="wrapper">
+			<form class="from_grn">
+				<select class="convert_from"></select>
+				<input class="how_much_change" type="text" placeholder="Сколько менять?">
+				<select class="convert_into"></select>
+				<button class="btn_convert_into">Convert</button>
+				<div class="show_into_result"></div>
+			</form>
+		</div>
+
+		<script>
+
+			fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?date=20191009&json')
+				.then(res => res.json())
+				.catch(err => alert('Не удаётся связатся с сервером!'))
+				.then(res => {
+					const sort = res.sort((next,prev)=> {
+						if(next.txt.toUpperCase() > prev.txt.toUpperCase()) return 1;
+						if (next.txt.toUpperCase() === prev.txt.toUpperCase()) return 0;
+						if(next.txt.toUpperCase() < prev.txt.toUpperCase()) return -1 ;
+					})
+
+					sort.forEach(item => {
+						const option = document.createElement('option');
+						option.innerText = item.txt;
+						const select = document.querySelector('.convert');
+						select.append(option);
+
+						const option_from = document.createElement('option');
+						option_from.innerText = item.txt;
+						const select_from = document.querySelector('.convert_from');
+						select_from.append(option_from);
+
+						const option_into = document.createElement('option');
+						option_into.innerText = item.txt;
+						const select_into = document.querySelector('.convert_into');
+						select_into.append(option_into);
+					})
+				})
+
+			const btn_convert = document.querySelector('.btn_convert');
+			btn_convert.addEventListener('click', (e) => {
+				e.preventDefault();
+				let how_much = document.querySelector('.how_much');
+				if(how_much.value != Number(how_much.value) || how_much.value === ''){
+					alert('Введите чисто!')
+				} else (
+					fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?date=20191009&json')
+						.then(res => res.json())
+						.catch(err => {
+							alert('Не удаётся связатся с сервером!');
+							how_much_change.value = '';	
+						})
+						.then(res => {
+							const select = document.querySelector('.convert').value;
+
+							res.find(item => {
+								if (item.txt === select) {
+										//delete result if defined
+									const result = document.querySelector('.result');
+									if(result){
+										result.remove();
+									}
+										//create span where put result
+									const span = document.createElement('span');
+									span.classList.add('result');
+									span.innerText = `${(how_much.value / item.rate).toFixed(2)} - ${item.txt}!`;
+										//put result in DOM span
+									const show = document.querySelector('.show_result');
+									show.append(span);
+									how_much.value = '';
+								}
+							});
+						})
+				);
+			});
+
+
+			const btn_convert_into = document.querySelector('.btn_convert_into');
+			btn_convert_into.addEventListener('click', (e) => {
+				e.preventDefault();
+				let how_much_change = document.querySelector('.how_much_change');
+				if(how_much_change.value != Number(how_much_change.value) || how_much_change.value === ''){
+					alert('Введите чисто!')
+				} else (
+					fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?date=20191009&json')
+						.then(res => res.json())
+						.catch(err => {
+							alert('Не удаётся связатся с сервером!');
+							how_much_change.value = '';	
+						})
+						.then(res => {
+							let select_from = document.querySelector('.convert_from').value;
+							select_from = res.find(item => {
+								if(select_from === item.txt){
+									return item
+								}
+							})
+
+							let select_into = document.querySelector('.convert_into').value;
+							select_into = res.find(item => {
+								if(select_into === item.txt){
+									return item
+								}
+							})
+
+							const result_into = document.querySelector('.result_into');
+							if(result_into){
+								result_into.remove();
+							}
+							const span = document.createElement('span');
+							span.classList.add('result_into');
+					
+							const culc = (select_from.rate * how_much_change.value) / select_into.rate;
+
+							span.innerText = `${culc.toFixed(2)} - ${select_into.txt}`;
+							const show = document.querySelector('.show_into_result');
+							show.append(span);
+							how_much_change.value = '';	
+						})
+				);
+
+			});	
+			
+			
+		</script>
+		
+	</body>
+</html>
